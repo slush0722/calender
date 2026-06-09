@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>독서실 작업 일정표</title>
+    <style>
+        :root {
+            --bg-color: #2c2520; /* 짙은 원목색 */
+            --panel-color: #3d352e;
+            --text-color: #f5efe6;
+            --text-muted: #a89f91;
+            --border-color: #4e433a;
+            
+            /* 숙박지별 색상 정의 */
+            --color-dorm: #8e8e93;       /* 기숙사: 회색 */
+            --color-g: #ff453a;          /* G집: 빨간색 */
+            --color-a: #0a84ff;          /* A집: 파란색 */
+            --color-j: #ffd60a;          /* J집: 노란색 */
+            --color-self: #ff9f0a;       /* 자율: 주황색 */
+            --color-unsure: #30d158;     /* 불확실: 연두색 */
+            --color-vacation: rgba(255, 214, 10, 0.08); /* 방학 배경색 */
+            --color-vacation-hover: rgba(255, 214, 10, 0.15); /* 방학 마우스 오버 시 색상 */
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--panel-color);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            position: relative;
+            border: 1px solid #4e433a;
+        }
+
+        /* 상단 네비게이션 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        .month-title {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .nav-btn {
+            background: #54493f;
+            color: var(--text-color);
+            border: none;
+            padding: 8px 16px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .nav-btn:hover {
+            background: #6e5f52;
+        }
+
+        /* 달력 그리드 */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .weekday {
+            text-align: center;
+            font-weight: 600;
+            color: var(--text-muted);
+            padding: 10px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .day-cell {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            min-height: 100px;
+            padding: 8px;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, z-index 0.2s, background-color 0.2s;
+            z-index: 1;
+        }
+
+        /* 마우스 오버 시 커지는 효과 (일반 날짜) */
+        .day-cell:hover {
+            transform: scale(1.08);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+            z-index: 10;
+            background-color: #473e36;
+        }
+
+        /* 마우스 오버 시 커지는 효과 (방학 날짜 전용 - 색상 유지) */
+        .day-cell.vacation-day:hover {
+            background-color: #52473c; /* 방학 배경 감안하여 어우러지는 톤으로 조정 */
+            background-image: linear-gradient(var(--color-vacation-hover), var(--color-vacation-hover));
+        }
+
+        .day-number {
+            font-size: 14px;
+            font-weight: bold;
+            position: relative;
+            z-index: 6; /* 선보다 위에 글자가 보이도록 설정 */
+        }
+
+        .other-month {
+            opacity: 0.2;
+            pointer-events: none;
+        }
+
+        /* 방학 기간 표시 */
+        .vacation-day {
+            background-color: var(--panel-color);
+            background-image: linear-gradient(var(--color-vacation), var(--color-vacation));
+        }
+        .vacation-badge {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 10px;
+            color: #ffd60a;
+            background: rgba(255, 214, 10, 0.15);
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+
+        /* 숙박 연결선 시스템 (칸 중간 위치) */
+        .sleep-start::after {
+            content: '';
+            position: absolute;
+            top: 35px;
+            left: 50%;
+            right: -6px;
+            height: 6px;
+            background-color: var(--start-color);
+            z-index: 5;
+            border-radius: 3px 0 0 3px;
+        }
+
+        .sleep-end::before {
+            content: '';
+            position: absolute;
+            top: 35px;
+            left: -6px;
+            right: 50%;
+            height: 6px;
+            background-color: var(--end-color);
+            z-index: 5;
+            border-radius: 0 3px 3px 0;
+        }
+
+        /* 하단 범례 */
+        .legend {
+            margin-top: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* 한쪽 구석의 커피 아이콘 */
+        .coffee-corner {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.6;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .coffee-cup {
+            font-size: 24px;
+            animation: steam 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes steam {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(-3px) scale(1.05); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <button class="nav-btn" id="prevBtn">◀</button>
+        <div class="month-title" id="monthTitle">2026년 6월</div>
+        <button class="nav-btn" id="nextBtn">▶</button>
+    </div>
+
+    <div class="calendar-grid" id="calendarGrid">
+        </div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="legend-color" style="background:var(--color-dorm)"></div>기숙사</div>
+        <div class="legend-item"><div class="legend-color" style="background:var(--color-g)"></div>G집</div>
+        <div class="legend-item"><div class="legend-color" style="background:var(--color-a)"></div>A집</div>
+        <div class="legend-item"><div class="legend-color" style="background:var(--color-j)"></div>J집</div>
+        <div class="legend-item"><div class="legend-color" style="background:var(--color-self)"></div>자율</div>
+        <div class="legend-item"><div class="legend-color" style="background:var(--color-unsure)"></div>불확실</div>
+        <div class="legend-item"><div class="legend-color" style="background:rgba(255,214,10,0.3)"></div>방학 (7/17~8/17)</div>
+    </div>
+
+    <div class="coffee-corner">
+        <span>Focusing...</span>
+        <span class="coffee-cup">☕</span>
+    </div>
+</div>
+
+<script>
+    // [제작자 데이터 입력 공간]
+    const eventsData = {
+        6: {
+            1: 'dorm', 2: 'self', 3: 'g', 4: 'dorm',
+            5: 'g', 6: 'g', 7: 'g',
+            8: 'dorm', 9: 'dorm', 10: 'dorm',
+            11: 'g', 12: 'a', 13: 'a', 14: 'g',
+            15: 'dorm', 16: 'dorm', 17: 'dorm',
+            18: 'g', 19: 'g', 20: 'g', 21: 'g',
+            22: 'unsure', 23: 'unsure',
+            24: 'g', 25: 'g',
+            26: 'j', 27: 'j', 28: 'j'
+        },
+        7: {
+            22: 'a', 23: 'a', 24: 'a',
+            25: 'g', 26: 'g', 27: 'g',
+            28: 'a', 29: 'a', 30: 'a',
+            31: 'g' 
+        },
+        8: {
+            1: 'g', 2: 'g'
+        }
+    };
+
+    const colorMap = {
+        'dorm': 'var(--color-dorm)',
+        'g': 'var(--color-g)',
+        'a': 'var(--color-a)',
+        'j': 'var(--color-j)',
+        'self': 'var(--color-self)',
+        'unsure': 'var(--color-unsure)'
+    };
+
+    let currentYear = 2026;
+    let currentMonth = 6; 
+
+    const monthTitle = document.getElementById('monthTitle');
+    const calendarGrid = document.getElementById('calendarGrid');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+
+    function getEvent(y, m, d) {
+        if (eventsData[m] && eventsData[m][d]) {
+            return eventsData[m][d];
+        }
+        return null;
+    }
+
+    function renderCalendar(year, month) {
+        calendarGrid.innerHTML = '';
+        monthTitle.innerText = `${year}년 ${month}월`;
+
+        weekdays.forEach(day => {
+            const dayHeader = document.createElement('div');
+            dayHeader.className = 'weekday';
+            dayHeader.innerText = day;
+            calendarGrid.appendChild(dayHeader);
+        });
+
+        const firstDayIndex = new Date(year, month - 1, 1).getDay();
+        const totalDays = new Date(year, month, 0).getDate();
+        const prevTotalDays = new Date(year, month - 1, 0).getDate();
+
+        // 1. 이전 달 빈칸
+        for (let i = firstDayIndex; i > 0; i--) {
+            const cell = document.createElement('div');
+            cell.className = 'day-cell other-month';
+            cell.innerHTML = `<div class="day-number">${prevTotalDays - i + 1}</div>`;
+            calendarGrid.appendChild(cell);
+        }
+
+        // 2. 이번 달 날짜 출력 및 선 연결 로직
+        for (let day = 1; day <= totalDays; day++) {
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+            
+            const numDiv = document.createElement('div');
+            numDiv.className = 'day-number';
+            numDiv.innerText = day;
+            cell.appendChild(numDiv);
+
+            // 방학 체크
+            if ((month === 7 && day >= 17) || (month === 8 && day <= 17)) {
+                cell.classList.add('vacation-day');
+                if (day === 17 || day === 1) {
+                    const badge = document.createElement('span');
+                    badge.className = 'vacation-badge';
+                    badge.innerText = '방학';
+                    cell.appendChild(badge);
+                }
+            }
+
+            // --- 숙박 선 표시 시스템 ---
+            const todayType = getEvent(year, month, day);
+            if (todayType) {
+                cell.classList.add('sleep-start');
+                cell.style.setProperty('--start-color', colorMap[todayType]);
+            }
+
+            let prevDay = day - 1;
+            let prevMonth = month;
+            if (prevDay === 0) {
+                prevMonth = month - 1;
+                if (prevMonth < 6) prevMonth = 8; 
+                prevDay = new Date(year, prevMonth, 0).getDate();
+            }
+            
+            const yesterdayType = getEvent(year, prevMonth, prevDay);
+            if (yesterdayType) {
+                cell.classList.add('sleep-end');
+                cell.style.setProperty('--end-color', colorMap[yesterdayType]);
+            }
+
+            calendarGrid.appendChild(cell);
+        }
+
+        // 3. 다음 달 빈칸
+        const totalAddedCells = firstDayIndex + totalDays;
+        const nextMonthEmptyCells = (7 - (totalAddedCells % 7)) % 7;
+        for (let i = 1; i <= nextMonthEmptyCells; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'day-cell other-month';
+            cell.innerHTML = `<div class="day-number">${i}</div>`;
+            calendarGrid.appendChild(cell);
+        }
+    }
+
+    prevBtn.addEventListener('click', () => {
+        currentMonth--;
+        if (currentMonth < 6) currentMonth = 8;
+        renderCalendar(currentYear, currentMonth);
+    });
+
+    nextBtn.addEventListener('click', () => {
+        currentMonth++;
+        if (currentMonth > 8) currentMonth = 6;
+        renderCalendar(currentYear, currentMonth);
+    });
+
+    renderCalendar(currentYear, currentMonth);
+</script>
+</body>
+</html>
