@@ -21,6 +21,10 @@
             --color-unsure: #30d158;     /* 불확실: 연두색 */
             --color-vacation: rgba(255, 214, 10, 0.08); /* 방학 배경색 */
             --color-vacation-hover: rgba(255, 214, 10, 0.15); /* 방학 마우스 오버 시 색상 */
+            
+            /* 오늘 날짜 표시용 색상 (스탠드 조명 느낌) */
+            --color-today-glow: rgba(48, 209, 88, 0.15);
+            --color-today-border: #30d158;
         }
 
         body {
@@ -113,10 +117,33 @@
             background-color: #473e36;
         }
 
-        /* 마우스 오버 시 커지는 효과 (방학 날짜 전용 - 색상 유지) */
+        /* 마우스 오버 시 커지는 효과 (방학 날짜 전용) */
         .day-cell.vacation-day:hover {
-            background-color: #52473c; /* 방학 배경 감안하여 어우러지는 톤으로 조정 */
+            background-color: #52473c; 
             background-image: linear-gradient(var(--color-vacation-hover), var(--color-vacation-hover));
+        }
+
+        /* [추가] 오늘 날짜 스타일 (독서실 초록 스탠드 조명 효과) */
+        .day-cell.today {
+            border: 1px solid var(--color-today-border);
+            box-shadow: inset 0 0 10px var(--color-today-glow), 0 0 8px rgba(48, 209, 88, 0.2);
+            background-color: rgba(48, 209, 88, 0.02);
+        }
+        .day-cell.today .day-number {
+            color: #5af281; /* 오늘 날짜 숫자는 연초록색으로 강조 */
+        }
+        .day-cell.today::border-box {
+            font-weight: bold;
+        }
+        .today-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 10px;
+            color: #30d158;
+            background: rgba(48, 209, 88, 0.15);
+            padding: 1px 4px;
+            border-radius: 4px;
         }
 
         .day-number {
@@ -281,8 +308,15 @@
         'unsure': 'var(--color-unsure)'
     };
 
+    // 시스템의 리얼타임 '오늘' 날짜 정보 가져오기
+    const realToday = new Date();
+    const todayYear = realToday.getFullYear();
+    const todayMonth = realToday.getMonth() + 1; // JS는 0부터 시작하므로 +1
+    const todayDate = realToday.getDate();
+
+    // 시작 기준 연월 (사용자가 접속한 달이 6~8월 사이라면 해당 월을 먼저 띄워줌, 아니면 6월 디폴트)
     let currentYear = 2026;
-    let currentMonth = 6; 
+    let currentMonth = (todayYear === 2026 && todayMonth >= 6 && todayMonth <= 8) ? todayMonth : 6; 
 
     const monthTitle = document.getElementById('monthTitle');
     const calendarGrid = document.getElementById('calendarGrid');
@@ -329,6 +363,15 @@
             numDiv.className = 'day-number';
             numDiv.innerText = day;
             cell.appendChild(numDiv);
+
+            // [오늘 날짜 표시 체크] 컴퓨터의 현재 날짜와 달력 날짜가 일치하는지 비교
+            if (year === todayYear && month === todayMonth && day === todayDate) {
+                cell.classList.add('today');
+                const todayBadge = document.createElement('span');
+                todayBadge.className = 'today-badge';
+                todayBadge.innerText = '오늘';
+                cell.appendChild(todayBadge);
+            }
 
             // 방학 체크
             if ((month === 7 && day >= 17) || (month === 8 && day <= 17)) {
